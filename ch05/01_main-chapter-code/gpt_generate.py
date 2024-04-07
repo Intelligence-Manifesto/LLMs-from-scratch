@@ -49,12 +49,12 @@ def download_and_load_gpt2(model_size, models_dir):
         file_path = os.path.join(model_dir, filename)
         download_file(file_url, file_path)
 
-    # Load hparams and params
+    # Load settings and params
     tf_ckpt_path = tf.train.latest_checkpoint(model_dir)
-    hparams = json.load(open(os.path.join(model_dir, "hparams.json")))
-    params = load_gpt2_params_from_tf_ckpt(tf_ckpt_path, hparams)
+    settings = json.load(open(os.path.join(model_dir, "hparams.json")))
+    params = load_gpt2_params_from_tf_ckpt(tf_ckpt_path, settings)
 
-    return hparams, params
+    return settings, params
 
 
 def download_file(url, destination):
@@ -85,9 +85,9 @@ def download_file(url, destination):
                 file.write(chunk)  # Write the chunk to the file
 
 
-def load_gpt2_params_from_tf_ckpt(ckpt_path, hparams):
+def load_gpt2_params_from_tf_ckpt(ckpt_path, settings):
     # Initialize parameters dictionary with empty blocks for each layer
-    params = {"blocks": [{} for _ in range(hparams["n_layer"])]}
+    params = {"blocks": [{} for _ in range(settings["n_layer"])]}
 
     # Iterate over each variable in the checkpoint
     for name, _ in tf.train.list_variables(ckpt_path):
@@ -221,7 +221,7 @@ def main(gpt_config, input_prompt, model_size):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    hparams, params = download_and_load_gpt2(model_size=model_size, models_dir="gpt2")
+    settings, params = download_and_load_gpt2(model_size=model_size, models_dir="gpt2")
 
     gpt = GPTModel(gpt_config)
     load_weights_into_gpt(gpt, params)
@@ -234,7 +234,7 @@ def main(gpt_config, input_prompt, model_size):
         model=gpt,
         idx=text_to_token_ids(input_prompt, tokenizer),
         max_new_tokens=30,
-        context_size=gpt_config["ctx_len"],
+        context_size=gpt_config["context_length"],
         top_k=1,
         temperature=1.0
     )
@@ -250,10 +250,10 @@ if __name__ == "__main__":
     INPUT_PROMPT = "Every effort moves"
 
     BASE_CONFIG = {
-        "vocab_size": 50257,  # Vocabulary size
-        "ctx_len": 1024,      # Context length
-        "drop_rate": 0.0,     # Dropout rate
-        "qkv_bias": True      # Query-key-value bias
+        "vocab_size": 50257,     # Vocabulary size
+        "context_length": 1024,  # Context length
+        "drop_rate": 0.0,        # Dropout rate
+        "qkv_bias": True         # Query-key-value bias
     }
 
     model_configs = {
